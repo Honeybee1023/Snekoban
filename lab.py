@@ -139,8 +139,37 @@ def dump_game(game):
     level_description[game["player"][0]][game["player"][1]].append("player")
 
     return level_description
-        
 
+def get_neighbor(game):
+    """
+    Given a game state in the internal representation of the board, return a list of game states reachable
+    in one move from the current game state
+    """
+    return [board for board in [
+        step_game(game, "up"),
+        step_game(game, "down"),
+        step_game(game, "left"),
+        step_game(game, "right")
+        ] if board != game]
+
+def state_path_to_move_path(state_path):
+    """
+    Given a tuple of n states, return a list of strings which are n-1 moves connecting the states
+    """
+    move_path = []
+
+    vect_to_dir = {
+            (-1, 0): "up",
+            (1, 0): "down",
+            (0, -1): "left",
+            (0, 1): "right"
+            }
+    
+    for index in range(len(state_path)-1):
+        move_vector = tuple(x-y for (x, y) in zip(state_path[index+1]["player"], state_path[index]["player"]))
+        move_path.append(vect_to_dir[move_vector])
+
+    return move_path
 
 def solve_puzzle(game):
     """
@@ -153,7 +182,26 @@ def solve_puzzle(game):
     If the given level cannot be solved, return None. This function should not mutate
     the input game.
     """
-    raise NotImplementedError
+    if victory_check(game):
+        return []
+    
+    visited = {(game["player"], frozenset(game["target"]), frozenset(game["computer"]))}
+    agenda = [(game, )]
+
+    while agenda:
+        current_path = agenda.pop(0)
+        last_state = current_path[-1]
+
+        for neighbor in get_neighbor(last_state):
+            if (neighbor["player"], frozenset(neighbor["target"]), frozenset(neighbor["computer"])) not in visited:
+                new_path = current_path + (neighbor,)
+                if victory_check(neighbor):
+                    return state_path_to_move_path(new_path)
+                else:
+                    agenda.append(new_path)
+                    visited.add((neighbor["player"], frozenset(neighbor["target"]), frozenset(neighbor["computer"])))
+
+    return None
 
 
 if __name__ == "__main__":
